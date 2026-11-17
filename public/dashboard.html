@@ -63,8 +63,8 @@
     class="fixed top-0 left-0 right-0 z-50 h-16 md:h-20 bg-[#07101a]/80 backdrop-blur-lg border-b border-slate-800 shadow-sm">
     <div class="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-3">
-        <svg viewBox="0 0 100 100" class="w-10 h-10" xmlns="http://www.w3.org/2000/svg" role="img"
-          aria-label="KreditCars logo">
+        <svg viewBox="0 0 100 100" class="w-10 h-10" xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="KreditCars logo">
           <defs>
             <clipPath id="hexClipLogo">
               <polygon points="25,6.7 75,6.7 100,50 75,93.3 25,93.3 0,50" />
@@ -72,8 +72,8 @@
           </defs>
           <polygon points="25,6.7 75,6.7 100,50 75,93.3 25,93.3 0,50" fill="none" stroke="#f59e0b" stroke-width="6"
             stroke-linejoin="round" />
-          <image href="images/KREDITCARS.png" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"
-            clip-path="url(#hexClipLogo)" />
+          <image href="images/KREDITCARS.png" xlink:href="images/KREDITCARS.png" x="0" y="0" width="100" height="100"
+            preserveAspectRatio="xMidYMid slice" clip-path="url(#hexClipLogo)" />
         </svg>
 
         <div class="leading-tight">
@@ -87,10 +87,7 @@
         <a href="index.html" class="uppercase text-sm text-slate-300 hover:text-white transition">Inventory</a>
         <a href="customer.html" class="uppercase text-sm text-slate-300 hover:text-white transition">Customers</a>
         <a href="notify.html" class="uppercase text-sm text-slate-300 hover:text-white transition">Notify</a>
-        <button type="button" onclick="logout()"
-          class="bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 text-xs uppercase font-bold rounded transition shadow">
-          Logout
-        </button>
+
       </div>
 
       <!-- mobile menu button -->
@@ -108,10 +105,7 @@
         <a href="index.html" class="text-slate-200 hover:text-amber-500 py-1">Inventory</a>
         <a href="customer.html" class="text-slate-200 hover:text-amber-500 py-1">Customers</a>
         <a href="notify.html" class="text-slate-200 hover:text-amber-500 py-1">Notify</a>
-        <button type="button" onclick="logout()"
-          class="mt-2 w-full bg-red-600 text-white text-center px-4 py-2 uppercase font-bold text-xs rounded shadow">
-          Logout
-        </button>
+
       </div>
     </div>
   </nav>
@@ -126,7 +120,8 @@
           <p class="text-slate-400 mt-1">
             Welcome back, <strong id="user-display-name" class="text-white">Staff</strong> —
             Role: <span id="user-display-role"
-              class="text-cyan-400 font-semibold uppercase text-xs px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30">Staff Member</span>
+              class="text-cyan-400 font-semibold uppercase text-xs px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30">Staff
+              Member</span>
           </p>
         </div>
 
