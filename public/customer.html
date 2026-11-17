@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KreditCars — Customers</title>
+  <meta name="description" content="KreditCars customer management" />
+  <link rel="icon" href="images/KREDITCARS.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Staff access control: hide activity link in navbar if logged in as staff -->
+  <script>
+    // STAFF SITE ACCESS GUARD: only logged-in staff accounts may open this page
+    (function () {
+      try {
+        var raw = localStorage.getItem('kreditcars_logged_in_user') || sessionStorage.getItem('kreditcars_logged_in_user');
+        var user = raw ? JSON.parse(raw) : null;
+        if (!user || String(user.role || '').toLowerCase() !== 'staff') {
+          window.location.replace('login.html');
+        }
+      } catch (e) {
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+  <style>
+    :root { --nav-h-mobile: 4rem; --nav-h-md: 5rem; }
+    @media (min-width: 768px) { :root { --nav-h: var(--nav-h-md); } }
+    @media (max-width: 767px) { :root { --nav-h: var(--nav-h-mobile); } }
+    main { padding-top: calc(var(--nav-h) + 1rem); }
+  </style>
+</head>
+<body class="bg-[#0E1621] text-slate-200 antialiased font-sans min-h-screen flex flex-col">
+
+  <!-- NAV -->
+  <nav class="fixed top-0 left-0 right-0 z-50 h-16 md:h-20 bg-[#07101a]/60 backdrop-blur-lg border-b border-slate-800 shadow-sm">
+    <div class="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <svg viewBox="0 0 100 100" class="w-10 h-10" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="KreditCars logo">
+          <defs>
+            <clipPath id="hexClipLogoCustomer"><polygon points="25,6.7 75,6.7 100,50 75,93.3 25,93.3 0,50" /></clipPath>
+          </defs>
+          <polygon points="25,6.7 75,6.7 100,50 75,93.3 25,93.3 0,50" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linejoin="round" />
+          <image href="images/KREDITCARS.png" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#hexClipLogoCustomer)" />
+        </svg>
+
+        <div class="leading-tight">
+          <div class="text-xl font-black tracking-wider italic">Kredit<span class="text-amber-500">Cars</span></div>
+          <div class="text-xs text-cyan-400 uppercase tracking-widest">Trusted Pre-Owned Vehicles</div>
+        </div>
+      </a>
+
+      <div class="hidden md:flex items-center gap-6">
+        <a href="index.html" class="uppercase text-sm text-slate-300 hover:text-white transition">Inventory</a>
+        <a href="customer.html" class="uppercase text-sm text-amber-500 font-bold hover:text-white transition">Customers</a>
+        <a href="notify.html" class="uppercase text-sm text-slate-300 hover:text-white transition">Notify</a>
+        <a href="dashboard.html" class="bg-amber-500 px-5 py-2 text-black font-bold uppercase transform -skew-x-6 hover:-translate-y-0.5 transition">
+          <span class="inline-block skew-x-6">DashBoard</span>
+        </a>
+        <button type="button" onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 text-xs uppercase font-bold rounded transition shadow">
+          Logout
+        </button>
+      </div>
+
+      <button id="mobile-btn" aria-expanded="false" class="md:hidden text-white" aria-label="Toggle navigation">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-[#07101a]/95 backdrop-blur-md border-t border-slate-800">
+      <div class="px-6 py-4 flex flex-col gap-3">
+        <a href="index.html" class="text-slate-200 hover:text-amber-500 py-1">Inventory</a>
+        <a href="customer.html" class="text-amber-500 font-bold py-1">Customers</a>
+        <a href="notify.html" class="text-slate-200 hover:text-amber-500 py-1">Notify</a>
+        <a href="dashboard.html" class="mt-2 inline-block bg-amber-500 text-black text-center px-4 py-2 uppercase font-bold">DashBoard</a>
+        <button type="button" onclick="logout()" class="mt-2 w-full bg-red-600 text-white text-center px-4 py-2 uppercase font-bold text-xs rounded shadow">
+          Logout
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <main class="pt-24 max-w-7xl mx-auto px-6 pb-20 w-full flex-1">
+    <div class="bg-[#07101a]/60 border border-slate-800 rounded-xl p-4 md:p-6 shadow-xl">
+
+      <!-- Header row: Title + Actions -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold text-white italic">Customer <span class="text-amber-500">Directory</span></h1>
+          <p class="text-sm text-slate-400 mt-1">Explore and manage customer applications, trade-ins, and financing records</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="btn-open-inquiry-modal-top" type="button" class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold uppercase text-xs px-3.5 py-1.5 rounded transition shadow">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>Submit Inquiry</span>
+          </button>
+          <span class="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="active-count-text">0 Active Customers</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- FLASH MESSAGE CONTAINER -->
+      <div id="flash-container" class="hidden mb-6"></div>
+
+      <div class="md:flex md:gap-6">
+        <!-- LEFT: compact notifications container -->
+        <aside class="w-full md:w-1/3 lg:w-1/4">
+          <div class="bg-black/40 border border-slate-800 rounded-xl p-4 shadow-md">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/80">
+              <div class="flex items-center gap-2">
+                <h2 class="text-sm font-semibold text-white">Notifications</h2>
+                <span id="notifications-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">0</span>
+              </div>
+              <span class="text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Live
+              </span>
+            </div>
+
+            <!-- Inquiries List Container -->
+            <div class="space-y-3" id="requests-list">
+              <!-- Dynamically populated from submitted inquiries -->
+            </div>
+
+            <!-- Empty State for Notifications Container -->
+            <div id="notifications-empty" class="text-center py-8 text-slate-500 text-xs">
+              <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <p class="font-bold text-slate-400 mb-0.5">No Pending Inquiries</p>
+              <p class="text-[11px] text-slate-500 max-w-[200px] mx-auto">Submit an inquiry on any vehicle or click "+ Submit Inquiry" above.</p>
+            </div>
+
+          </div>
+        </aside>
+
+        <!-- RIGHT: wide customer listing container (Customers container) -->
+        <section class="w-full md:w-2/3 lg:w-3/4 mt-6 md:mt-0">
+          <div class="bg-black/40 border border-slate-800 rounded-xl p-4 shadow-md">
+            <div class="flex items-center justify-between gap-4 mb-4">
+              <h2 class="text-sm font-semibold text-white">Customers</h2>
+
+              <!-- compact delete form -->
+              <form id="delete-form" class="flex items-center gap-2">
+                <input type="number" id="delete_id_input" placeholder="ID" required
+                       class="w-20 bg-[#0E1621] border border-slate-700 px-2.5 py-1 text-white text-sm rounded-lg focus:outline-none focus:border-amber-500" />
+                <button type="submit" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 text-xs font-bold rounded-lg transition shadow">Delete</button>
+              </form>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-slate-800/80">
+              <table class="min-w-full text-left text-sm table-auto">
+                <thead class="bg-slate-900/60">
+                  <tr class="text-slate-400 uppercase text-[11px] border-b border-slate-800">
+                    <th class="px-4 py-3 w-16">ID</th>
+                    <th class="px-4 py-3">First Name</th>
+                    <th class="px-4 py-3">Last Name</th>
+                    <th class="px-4 py-3">Phone</th>
+                    <th class="px-4 py-3">Option</th>
+                    <th class="px-4 py-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="customers-table-body" class="divide-y divide-slate-800/80">
+                  <!-- Empty State Row (Shown when no customers exist) -->
+                  <tr id="empty-state-row">
+                    <td colspan="6" class="py-12 text-center text-slate-400">
+                      <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <p class="font-bold text-white text-sm mb-1">No Active Customers</p>
+                      <p class="text-xs text-slate-500 max-w-xs mx-auto mb-3">Accept pending inquiries from the Notifications container to add customer records.</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- SUBMIT INQUIRY MODAL -->
+  <div id="inquiry-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0B1320] border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+      <button id="close-inquiry-modal" type="button" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
+
+      <div class="mb-4">
+        <h3 class="text-xl font-bold text-white italic">Submit Customer <span class="text-amber-500">Inquiry</span></h3>
+        <p class="text-xs text-slate-400 mt-1">Information entered here will go to the Notifications container.</p>
+      </div>
+
+      <form id="inquiry-modal-form" class="space-y-4">
+        <div>
+          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Full Name</label>
+          <input id="inq-fullname" type="text" required placeholder="e.g. Juan Dela Cruz" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Contact Phone</label>
+            <input id="inq-phone" type="tel" required placeholder="0917-000-0000" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Email</label>
+            <input id="inq-email" type="email" placeholder="you@email.com" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Vehicle of Interest</label>
+          <input id="inq-vehicle" type="text" placeholder="e.g. Toyota Vios 1.5 G" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Payment / Financing Preference</label>
+          <select id="inq-preference" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500">
+            <option value="Direct Purchase (Cash)">Direct Purchase (Cash)</option>
+            <option value="Financing - 36 Months Term">Financing - 36 Months Term</option>
+            <option value="Financing - 48 Months Term">Financing - 48 Months Term</option>
+            <option value="Financing - 60 Months Term">Financing - 60 Months Term</option>
+            <option value="Vehicle Trade-In Assessment">Vehicle Trade-In Assessment</option>
+            <option value="Consignment Inquiry">Consignment Inquiry</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase text-slate-400 font-semibold mb-1">Questions or Message (Optional)</label>
+          <textarea id="inq-message" rows="3" placeholder="Tell us about your requirements or questions..." class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold uppercase py-2.5 rounded-lg text-sm transition shadow-lg">
+          Submit Inquiry
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION POP-OUT MODAL -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0B1320] border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative transform transition-all animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Close 'X' button -->
+      <button id="modal-close-x" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
+
+      <div class="flex items-start gap-4">
+        <!-- Icon container -->
+        <div id="modal-icon-container" class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-500/10 border border-red-500/30 text-red-500">
+          <svg id="modal-icon-danger" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <svg id="modal-icon-success" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+
+        <div class="flex-1 pr-2">
+          <h3 id="modal-title" class="text-lg font-bold text-white italic">Confirm Action</h3>
+          <p id="modal-message" class="text-sm text-slate-300 mt-2 leading-relaxed">
+            Are you sure you want to proceed?
+          </p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
+        <button id="modal-cancel-btn" type="button" class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold uppercase tracking-wider transition border border-slate-700">
+          Cancel
+        </button>
+        <button id="modal-confirm-btn" type="button" class="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider transition shadow-lg">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-black text-slate-500 py-12 border-t border-slate-900 mt-auto">
+    <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-8">
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-3 mb-4">
+          <svg class="w-6 h-6 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          </svg>
+          <div class="text-xl font-bold text-white">Kredit<span class="text-amber-500">Cars</span></div>
+        </div>
+
+        <p class="max-w-xs mb-4 text-sm text-slate-400">KreditCars — quality pre-owned vehicles in Olongapo City. Honest service and tailored financing to help you drive away happy.</p>
+
+        <div class="flex gap-3">
+          <a href="#" class="w-10 h-10 border border-slate-800 flex items-center justify-center hover:text-white hover:border-slate-600 transition text-sm font-semibold">F</a>
+          <a href="#" class="w-10 h-10 border border-slate-800 flex items-center justify-center hover:text-white hover:border-slate-600 transition text-sm font-semibold">I</a>
+          <a href="#" class="w-10 h-10 border border-slate-800 flex items-center justify-center hover:text-white hover:border-slate-600 transition text-sm font-semibold">M</a>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold uppercase mb-3 text-sm tracking-wider">Office</h4>
+        <p class="text-sm">Olongapo City, Philippines</p>
+        <p class="mt-3 text-amber-500 text-sm font-medium">Mon - Fri: 9:00 AM - 6:00 PM</p>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold uppercase mb-3 text-sm tracking-wider">Quick Links</h4>
+        <div class="flex flex-col space-y-2 text-sm">
+          <a href="index.html" class="hover:text-amber-400 transition">Inventory</a>
+          <a href="customer.html" class="hover:text-amber-400 transition">Customers</a>
+          <a href="notify.html" class="hover:text-amber-400 transition">Notifications</a>
+          <a href="dashboard.html" class="hover:text-amber-400 transition">Dashboard</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm pt-4 border-t border-slate-900/60">
+      <p>© 2026 KreditCars. All rights reserved.</p>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span class="text-green-500 font-bold uppercase text-xs">System Online</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { db, collection, doc, addDoc, getDocs, deleteDoc, query, orderBy, serverTimestamp, onSnapshot } from './firebase.js';
+
+    // ── Helpers ──────────────────────────────────────────────
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function splitName(fullName) {
+      const parts = (fullName || '').trim().split(/\s+/);
+      if (parts.length === 0 || !parts[0]) return { firstName: 'Customer', lastName: '' };
+      if (parts.length === 1) return { firstName: parts[0], lastName: '-' };
+      return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+    }
+
+    function formatDate(ts) {
+      if (!ts) return '';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' +
+             d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ── Mobile menu toggle ───────────────────────────────────
+    const mobileBtn = document.getElementById('mobile-btn');
+    if (mobileBtn) {
+      mobileBtn.addEventListener('click', function() {
+        const menu = document.getElementById('mobile-menu');
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', (!expanded).toString());
+        if (menu) menu.classList.toggle('hidden');
+      });
+    }
+
+    // ── Flash message helper ─────────────────────────────────
+    function showFlash(type, message) {
+      const flash = document.getElementById('flash-container');
+      if (!flash) return;
+
+      const isSuccess = type === 'success';
+      flash.className = `rounded-xl border px-5 py-3 font-medium transition duration-300 flex items-center justify-between shadow-lg ${
+        isSuccess
+          ? 'bg-emerald-950/60 border-emerald-600/70 text-emerald-300'
+          : 'bg-red-950/60 border-red-600/70 text-red-300'
+      }`;
+      flash.innerHTML = `
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            ${isSuccess 
+              ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>' 
+              : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'}
+          </svg>
+          <span class="text-sm">${message}</span>
+        </div>
+        <button onclick="this.parentElement.classList.add('hidden')" class="text-slate-400 hover:text-white p-1" title="Close">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      `;
+      flash.classList.remove('hidden');
+      flash.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── Confirmation Modal ───────────────────────────────────
+    let pendingConfirmAction = null;
+
+    function showConfirmModal(opts) {
+      const modal = document.getElementById('confirm-modal');
+      const title = document.getElementById('modal-title');
+      const msg = document.getElementById('modal-message');
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      const iconDanger = document.getElementById('modal-icon-danger');
+      const iconSuccess = document.getElementById('modal-icon-success');
+      const iconBox = document.getElementById('modal-icon-container');
+
+      if (!modal) return;
+
+      title.textContent = opts.title || 'Confirmation';
+      msg.innerHTML = opts.message || 'Are you sure you want to proceed?';
+      confirmBtn.textContent = opts.confirmText || 'Confirm';
+
+      if (opts.isDanger) {
+        confirmBtn.className = "px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider transition shadow-lg";
+        iconBox.className = "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-500/10 border border-red-500/30 text-red-500";
+        iconDanger.classList.remove('hidden');
+        iconSuccess.classList.add('hidden');
+      } else {
+        confirmBtn.className = "px-6 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold uppercase tracking-wider transition shadow-lg";
+        iconBox.className = "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-500/10 border border-amber-500/30 text-amber-400";
+        iconDanger.classList.add('hidden');
+        iconSuccess.classList.remove('hidden');
+      }
+
+      pendingConfirmAction = opts.onConfirm;
+      modal.classList.remove('hidden');
+    }
+
+    function hideConfirmModal() {
+      const modal = document.getElementById('confirm-modal');
+      if (modal) modal.classList.add('hidden');
+      pendingConfirmAction = null;
+    }
+
+    const modalCancelBtn = document.getElementById('modal-cancel-btn');
+    const modalCloseX = document.getElementById('modal-close-x');
+    const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+    const confirmModal = document.getElementById('confirm-modal');
+
+    if (modalCancelBtn) modalCancelBtn.addEventListener('click', hideConfirmModal);
+    if (modalCloseX) modalCloseX.addEventListener('click', hideConfirmModal);
+    if (confirmModal) {
+      confirmModal.addEventListener('click', function(e) {
+        if (e.target === confirmModal) hideConfirmModal();
+      });
+    }
+    if (modalConfirmBtn) {
+      modalConfirmBtn.addEventListener('click', function() {
+        if (typeof pendingConfirmAction === 'function') {
+          pendingConfirmAction();
+        }
+        hideConfirmModal();
+      });
+    }
+
+    // ── Render Inquiries from Firestore (real-time) ─────────
+    // Cache for use by accept/dismiss handlers
+    let currentInquiries = [];
+
+    function renderInquiriesFromData(inquiries) {
+      currentInquiries = inquiries;
+      const list = document.getElementById('requests-list');
+      const emptyNotif = document.getElementById('notifications-empty');
+      const countBadge = document.getElementById('notifications-count-badge');
+
+      if (countBadge) countBadge.textContent = inquiries.length;
+      if (!list) return;
+      list.innerHTML = '';
+
+      if (inquiries.length === 0) {
+        if (emptyNotif) emptyNotif.classList.remove('hidden');
+        return;
+      } else {
+        if (emptyNotif) emptyNotif.classList.add('hidden');
+      }
+
+      inquiries.forEach(inq => {
+        const card = document.createElement('div');
+        card.className = 'bg-[#0B1320] border border-slate-800 rounded-lg p-3 text-xs shadow hover:border-slate-700 transition';
+
+        // Map Firestore fields to display fields
+        const displayName = inq.customerName || inq.fullName || 'Customer';
+        const displayVehicle = inq.carName || inq.vehicle || 'Vehicle Inquiry';
+        const displayPhone = inq.phone || (inq.contact ? inq.contact.split('|')[0].trim() : '');
+        const displayEmail = inq.email || (inq.contact && inq.contact.includes('|') ? inq.contact.split('|')[1].trim() : '');
+        const displayDate = formatDate(inq.createdAt) || inq.date || '';
+        const displayPreference = inq.preference || 'Direct Purchase';
+        const displayMessage = inq.message || '';
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-1 mb-1">
+                <span class="uppercase text-[9px] text-amber-400 font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 truncate">
+                  ${escapeHtml(displayVehicle)}
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono flex-shrink-0">${escapeHtml(displayDate)}</span>
+              </div>
+              <div class="font-bold text-sm text-white truncate">${escapeHtml(displayName)}</div>
+              <div class="text-[11px] text-slate-300 mt-1 flex items-center gap-1.5">
+                <span class="text-slate-500">Phone:</span>
+                <span class="font-mono text-slate-200">${escapeHtml(displayPhone)}</span>
+              </div>
+              ${displayEmail ? `
+                <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
+                  <span class="text-slate-500">Email:</span>
+                  <span class="text-slate-300">${escapeHtml(displayEmail)}</span>
+                </div>
+              ` : ''}
+              <div class="text-[11px] text-cyan-400 font-medium mt-1.5 flex items-center gap-1">
+                <span class="text-slate-500 text-[10px] uppercase font-mono">Option:</span>
+                <span>${escapeHtml(displayPreference)}</span>
+              </div>
+              ${displayMessage ? `
+                <div class="text-[11px] text-slate-400 mt-2 italic bg-slate-900/70 p-2 rounded border border-slate-800/80 break-words">
+                  "${escapeHtml(displayMessage)}"
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-2 mt-3 pt-2.5 border-t border-slate-800/80">
+            <button type="button" class="btn-decline-inq px-2.5 py-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded text-[11px] font-semibold transition">
+              Dismiss
+            </button>
+            <button type="button" class="btn-accept-inq bg-amber-500 px-3.5 py-1 text-black font-bold uppercase transform -skew-x-6 hover:bg-amber-400 text-[11px] rounded transition shadow">
+              <span class="inline-block skew-x-6">Accept</span>
+            </button>
+          </div>
+        `;
+
+        card.querySelector('.btn-accept-inq').addEventListener('click', () => confirmAcceptInquiry(inq));
+        card.querySelector('.btn-decline-inq').addEventListener('click', () => confirmDismissInquiry(inq));
+
+        list.appendChild(card);
+      });
+    }
+
+    // Start real-time listener for Firestore "inquiries" collection
+    try {
+      const inqQuery = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
+      onSnapshot(inqQuery, (snapshot) => {
+        const inquiries = [];
+        snapshot.forEach(docSnap => {
+          inquiries.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderInquiriesFromData(inquiries);
+      }, (err) => {
+        console.warn('Firestore inquiries listener error:', err);
+        // Fallback: one-time fetch without ordering
+        getDocs(collection(db, 'inquiries')).then(snap => {
+          const inquiries = [];
+          snap.forEach(d => inquiries.push({ id: d.id, ...d.data() }));
+          inquiries.sort((a, b) => {
+            const ta = a.createdAt?.toDate?.() || new Date(0);
+            const tb = b.createdAt?.toDate?.() || new Date(0);
+            return tb - ta;
+          });
+          renderInquiriesFromData(inquiries);
+        }).catch(e => console.error('Fallback fetch failed:', e));
+      });
+    } catch (e) {
+      console.error('Could not set up inquiries listener:', e);
+    }
+
+    // ── Accept Inquiry ───────────────────────────────────────
+    function confirmAcceptInquiry(inq) {
+      const displayName = inq.customerName || inq.fullName || 'Customer';
+      showConfirmModal({
+        title: 'Accept Inquiry',
+        message: `Accept inquiry from <span class="font-bold text-white">${escapeHtml(displayName)}</span> and add to customer records?`,
+        confirmText: 'Yes, Accept',
+        isDanger: false,
+        onConfirm: async function() {
+          try {
+            // Add to Firestore "customers" collection
+            const { firstName, lastName } = splitName(displayName);
+            const phone = inq.phone || (inq.contact ? inq.contact.split('|')[0].trim() : '');
+            const email = inq.email || (inq.contact && inq.contact.includes('|') ? inq.contact.split('|')[1].trim() : '');
+
+            await addDoc(collection(db, 'customers'), {
+              firstName,
+              lastName,
+              fullName: displayName,
+              phone,
+              email,
+              option: inq.preference || 'Direct Purchase',
+              vehicle: inq.carName || inq.vehicle || '',
+              createdAt: serverTimestamp()
+            });
+
+            // Remove inquiry from Firestore
+            await deleteDoc(doc(db, 'inquiries', inq.id));
+
+            // Customers table re-renders via its own snapshot listener
+            showFlash('success', `Inquiry from ${displayName} accepted and added to the Customers table!`);
+          } catch (err) {
+            console.error('Error accepting inquiry:', err);
+            showFlash('danger', 'Failed to accept inquiry. Check console for details.');
+          }
+        }
+      });
+    }
+
+    // ── Dismiss Inquiry ──────────────────────────────────────
+    function confirmDismissInquiry(inq) {
+      const displayName = inq.customerName || inq.fullName || 'Customer';
+      showConfirmModal({
+        title: 'Dismiss Inquiry',
+        message: `Dismiss inquiry from <span class="font-bold text-white">${escapeHtml(displayName)}</span>? This inquiry will be removed.`,
+        confirmText: 'Yes, Dismiss',
+        isDanger: true,
+        onConfirm: async function() {
+          try {
+            await deleteDoc(doc(db, 'inquiries', inq.id));
+            showFlash('success', `Inquiry from ${displayName} was dismissed.`);
+          } catch (err) {
+            console.error('Error dismissing inquiry:', err);
+            showFlash('danger', 'Failed to dismiss inquiry. Check console for details.');
+          }
+        }
+      });
+    }
+
+    // ── Render Customers from Firestore (real-time) ─────────
+    let currentCustomers = [];
+
+    function renderCustomersFromData(customers) {
+      currentCustomers = customers;
+      const tbody = document.getElementById('customers-table-body');
+      const emptyRow = document.getElementById('empty-state-row');
+      const countText = document.getElementById('active-count-text');
+
+      if (countText) {
+        countText.textContent = `${customers.length} Active Customer${customers.length === 1 ? '' : 's'}`;
+      }
+
+      if (!tbody) return;
+
+      // Clear existing customer rows while preserving empty-state-row
+      tbody.querySelectorAll('.customer-row').forEach(row => row.remove());
+
+      if (customers.length === 0) {
+        if (emptyRow) emptyRow.classList.remove('hidden');
+        return;
+      }
+
+      if (emptyRow) emptyRow.classList.add('hidden');
+
+      customers.forEach(cust => {
+        const tr = document.createElement('tr');
+        tr.className = 'customer-row hover:bg-slate-800/30 transition';
+        tr.setAttribute('data-id', cust.id);
+        tr.setAttribute('data-name', cust.fullName || `${cust.firstName} ${cust.lastName}`);
+        tr.innerHTML = `
+          <td class="px-4 py-3 align-middle text-slate-400 font-mono">${escapeHtml(cust.id.slice(0,6))}</td>
+          <td class="px-4 py-3 align-middle font-medium text-white">${escapeHtml(cust.firstName)}</td>
+          <td class="px-4 py-3 align-middle text-slate-300">${escapeHtml(cust.lastName)}</td>
+          <td class="px-4 py-3 align-middle text-slate-400">${escapeHtml(cust.phone)}</td>
+          <td class="px-4 py-3 align-middle text-cyan-400">${escapeHtml(cust.option)}</td>
+          <td class="px-4 py-3 align-middle text-center">
+            <button type="button" class="btn-del-cust px-2.5 py-1 bg-red-600/80 hover:bg-red-600 text-white rounded text-xs font-semibold transition" title="Delete customer">
+              Delete
+            </button>
+          </td>
+        `;
+
+        tr.querySelector('.btn-del-cust').addEventListener('click', () => {
+          confirmDeleteCustomer(cust.id, cust.fullName || `${cust.firstName} ${cust.lastName}`);
+        });
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Start real-time listener for Firestore "customers" collection
+    try {
+      const custQuery = query(collection(db, 'customers'), orderBy('createdAt', 'desc'));
+      onSnapshot(custQuery, (snapshot) => {
+        const customers = [];
+        snapshot.forEach(docSnap => {
+          customers.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderCustomersFromData(customers);
+      }, (err) => {
+        console.warn('Firestore customers listener error:', err);
+        getDocs(collection(db, 'customers')).then(snap => {
+          const customers = [];
+          snap.forEach(d => customers.push({ id: d.id, ...d.data() }));
+          renderCustomersFromData(customers);
+        }).catch(e => console.error('Fallback customers fetch failed:', e));
+      });
+    } catch (e) {
+      console.error('Could not set up customers listener:', e);
+    }
+
+    // ── Delete Customer ──────────────────────────────────────
+    function confirmDeleteCustomer(id, name) {
+      showConfirmModal({
+        title: 'Delete Customer',
+        message: `Delete customer record for <span class="font-bold text-white">${escapeHtml(name || '#' + id)}</span>? This action cannot be undone.`,
+        confirmText: 'Yes, Delete',
+        isDanger: true,
+        onConfirm: async function() {
+          try {
+            await deleteDoc(doc(db, 'customers', id));
+            showFlash('success', `Customer (${name}) was removed successfully.`);
+          } catch (err) {
+            console.error('Error deleting customer:', err);
+            showFlash('danger', 'Failed to delete customer. Check console for details.');
+          }
+        }
+      });
+    }
+
+    // ── Delete form submission by ID input ────────────────────
+    const deleteForm = document.getElementById('delete-form');
+    if (deleteForm) {
+      deleteForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const idInput = document.getElementById('delete_id_input');
+        const idVal = idInput ? idInput.value.trim() : '';
+        if (!idVal) return;
+
+        const cust = currentCustomers.find(c => c.id === idVal || c.id.startsWith(idVal));
+
+        if (!cust) {
+          showFlash('danger', `Customer with ID starting with "${idVal}" not found.`);
+          return;
+        }
+
+        confirmDeleteCustomer(cust.id, cust.fullName || `${cust.firstName} ${cust.lastName}`);
+        deleteForm.reset();
+      });
+    }
+
+    // ── Inquiry Modal Controls ────────────────────────────────
+    const openInqBtnTop = document.getElementById('btn-open-inquiry-modal-top');
+    const inqModal = document.getElementById('inquiry-modal');
+    const closeInqModal = document.getElementById('close-inquiry-modal');
+    const inqForm = document.getElementById('inquiry-modal-form');
+
+    function openInquiryModal() {
+      if (inqModal) inqModal.classList.remove('hidden');
+    }
+    function hideInquiryModal() {
+      if (inqModal) inqModal.classList.add('hidden');
+    }
+
+    if (openInqBtnTop) openInqBtnTop.addEventListener('click', openInquiryModal);
+    if (closeInqModal) closeInqModal.addEventListener('click', hideInquiryModal);
+    if (inqModal) {
+      inqModal.addEventListener('click', function(e) {
+        if (e.target === inqModal) hideInquiryModal();
+      });
+    }
+
+    // ── Submit Inquiry → Firestore ────────────────────────────
+    if (inqForm) {
+      inqForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitBtn = inqForm.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+
+        const fullName = (document.getElementById('inq-fullname')?.value || '').trim();
+        const phone = (document.getElementById('inq-phone')?.value || '').trim();
+        const email = (document.getElementById('inq-email')?.value || '').trim();
+        const vehicle = (document.getElementById('inq-vehicle')?.value || '').trim() || 'Vehicle Inquiry';
+        const preference = document.getElementById('inq-preference')?.value || 'Direct Purchase (Cash)';
+        const message = (document.getElementById('inq-message')?.value || '').trim();
+
+        try {
+          await addDoc(collection(db, 'inquiries'), {
+            carId: '',
+            carName: vehicle,
+            customerName: fullName,
+            contact: phone + (email ? ` | ${email}` : ''),
+            phone,
+            email,
+            preference,
+            message,
+            status: 'New',
+            createdAt: serverTimestamp()
+          });
+          hideInquiryModal();
+          inqForm.reset();
+          showFlash('success', `Inquiry from ${fullName} submitted successfully!`);
+        } catch (err) {
+          console.error('Error submitting inquiry:', err);
+          showFlash('danger', 'Failed to submit inquiry. Check console for details.');
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Inquiry'; }
+        }
+      });
+    }
+  </script>
+
+  <!-- STAFF SITE: Firebase sign-in check + logout -->
+  <script type="module">
+    import { auth, onAuthStateChanged, signOut } from './firebase.js';
+
+    const SESSION_KEY = 'kreditcars_logged_in_user';
+    function clearSession() {
+      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+
+    window.logout = async function () {
+      try { await signOut(auth); } catch (err) { console.warn('Sign out issue:', err); }
+      clearSession();
+      window.location.href = 'login.html';
+    };
+
+    // If Firebase says nobody is signed in, send them back to login
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        clearSession();
+        window.location.replace('login.html');
+      }
+    });
+  </script>
+</body>
+</html>

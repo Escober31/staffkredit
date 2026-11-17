@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KreditCars — Notifications</title>
+  <meta name="description" content="KreditCars notifications and customer requests & applications" />
+  <link rel="icon" href="images/KREDITCARS.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Staff access control: hide activity link in navbar if logged in as staff -->
+  <script>
+    // STAFF SITE ACCESS GUARD: only logged-in staff accounts may open this page
+    (function () {
+      try {
+        var raw = localStorage.getItem('kreditcars_logged_in_user') || sessionStorage.getItem('kreditcars_logged_in_user');
+        var user = raw ? JSON.parse(raw) : null;
+        if (!user || String(user.role || '').toLowerCase() !== 'staff') {
+          window.location.replace('login.html');
+        }
+      } catch (e) {
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+  <style>
+    :root {
+      --nav-h-mobile: 4rem;
+      --nav-h-md: 5rem;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --nav-h: var(--nav-h-md);
+      }
+    }
+
+    @media (max-width: 767px) {
+      :root {
+        --nav-h: var(--nav-h-mobile);
+      }
+    }
+
+    main {
+      padding-top: calc(var(--nav-h) + 1rem);
+    }
+  </style>
+  <script>
+    // Immediate anti-flash check for permanently processed applications and requests before rendering
+    (function () {
+      try {
+        var processedApps = JSON.parse(localStorage.getItem('kreditcars_processed_applications') || '[]');
+        var processedReqs = JSON.parse(localStorage.getItem('kreditcars_processed_requests') || '[]');
+        var rules = [];
+        if (Array.isArray(processedApps) && processedApps.length > 0) {
+          processedApps.forEach(function (id) {
+            rules.push('.app-row[data-id="' + id + '"] { display: none !important; }');
+          });
+        }
+        if (Array.isArray(processedReqs) && processedReqs.length > 0) {
+          processedReqs.forEach(function (id) {
+            rules.push('#' + id + ' { display: none !important; }');
+          });
+        }
+        if (rules.length > 0) {
+          var style = document.createElement('style');
+          style.id = 'anti-flash-notify';
+          style.textContent = rules.join(' ');
+          document.head.appendChild(style);
+        }
+      } catch (e) { }
+    })();
+  </script>
+</head>
+
+<body class="bg-[#0E1621] text-slate-200 antialiased font-sans min-h-screen flex flex-col">
+
+  <!-- NAV (Matching customer.html) -->
+  <nav
+    class="fixed top-0 left-0 right-0 z-50 h-16 md:h-20 bg-[#07101a]/60 backdrop-blur-lg border-b border-slate-800 shadow-sm">
+    <div class="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <svg viewBox="0 0 100 100" class="w-10 h-10" xmlns="http://www.w3.org/2000/svg" role="img"
+          aria-label="KreditCars logo">
+          <defs>
+            <clipPath id="hexClipLogoNotify">
+              <polygon points="25,6.7 75,6.7 100,50 75,93.3 25,93.3 0,50" />
+            </clipPath>
+          </defs>
+          <polygon points="25,6.7 75,6.7 100,50 75,93.3 25,93.3 0,50" fill="none" stroke="#f59e0b" stroke-width="6"
+            stroke-linejoin="round" />
+          <image href="images/KREDITCARS.png" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"
+            clip-path="url(#hexClipLogoNotify)" />
+        </svg>
+
+        <div class="leading-tight">
+          <div class="text-xl font-black tracking-wider italic">Kredit<span class="text-amber-500">Cars</span></div>
+          <div class="text-xs text-cyan-400 uppercase tracking-widest">Trusted Pre-Owned Vehicles</div>
+        </div>
+      </a>
+
+      <div class="hidden md:flex items-center gap-6">
+        <a href="index.html" class="uppercase text-sm text-slate-300 hover:text-white transition">Inventory</a>
+        <a href="customer.html" class="uppercase text-sm text-slate-300 hover:text-white transition">Customers</a>
+        <a href="notify.html" class="uppercase text-sm text-amber-500 font-bold hover:text-white transition">Notify</a>
+        <a href="dashboard.html"
+          class="bg-amber-500 px-5 py-2 text-black font-bold uppercase transform -skew-x-6 hover:-translate-y-0.5 transition">
+          <span class="inline-block skew-x-6">DashBoard</span>
+        </a>
+        <button type="button" onclick="logout()" class="bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 text-xs uppercase font-bold rounded transition shadow">
+          Logout
+        </button>
+      </div>
+
+      <button id="mobile-btn" aria-expanded="false" class="md:hidden text-white" aria-label="Toggle navigation">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" stroke="currentColor">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-[#07101a]/95 backdrop-blur-md border-t border-slate-800">
+      <div class="px-6 py-4 flex flex-col gap-3">
+        <a href="index.html" class="text-slate-200 hover:text-amber-500 py-1">Inventory</a>
+        <a href="customer.html" class="text-slate-200 hover:text-amber-500 py-1">Customers</a>
+        <a href="notify.html" class="text-amber-500 font-bold py-1">Notify</a>
+        <a href="dashboard.html"
+          class="mt-2 inline-block bg-amber-500 text-black text-center px-4 py-2 uppercase font-bold">DashBoard</a>
+        <button type="button" onclick="logout()" class="mt-2 w-full bg-red-600 text-white text-center px-4 py-2 uppercase font-bold text-xs rounded shadow">
+          Logout
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER (Matching customer.html) -->
+  <main class="pt-24 max-w-7xl mx-auto px-6 pb-20 w-full flex-1">
+    <div class="bg-[#07101a]/60 border border-slate-800 rounded-xl p-4 md:p-6 shadow-xl">
+
+      <!-- Header row: Title + Actions (Matching customer.html) -->
+      <div
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold text-white italic">Notification <span
+              class="text-amber-500">Center</span></h1>
+          <p class="text-sm text-slate-400 mt-1">Review, accept, or reject incoming customer requests & applications
+            requests</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span id="pending-badge"
+            class="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="pending-badge-text">0 Pending Requests</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- FLASH MESSAGE CONTAINER -->
+      <div id="flash-container" class="hidden mb-6"></div>
+
+      <!-- TWO-COLUMN LAYOUT (Matching customer.html) -->
+      <div class="md:flex md:gap-6">
+
+        <!-- LEFT: compact notifications (small column matching customer.html) -->
+        <aside class="w-full md:w-1/4">
+          <div class="bg-black/40 border border-slate-800 rounded-xl p-4 shadow-md">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-semibold text-white">Recent Requests</h2>
+              <span class="text-[10px] text-amber-500 font-mono font-bold uppercase tracking-wider">Live</span>
+            </div>
+
+            <div class="space-y-3" id="requests-list">
+              <!-- Dynamically populated from Firestore "quickInquiries" -->
+            </div>
+
+            <!-- Empty State for Requests -->
+            <div id="requests-empty" class="hidden text-center py-6 text-slate-500 text-xs">
+              <svg class="w-8 h-8 mx-auto mb-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="font-medium text-slate-400">All Requests Handled</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">No pending customer requests.</p>
+            </div>
+
+          </div>
+        </aside>
+
+        <!-- RIGHT: wide applications listing (Matching customer.html) -->
+        <section class="w-full md:w-3/4 mt-6 md:mt-0">
+          <div class="bg-black/40 border border-slate-800 rounded-xl p-4 shadow-md">
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+              <h2 class="text-sm font-semibold text-white">Customer Requests & Applications</h2>
+
+              <!-- Filter buttons -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs text-slate-400 uppercase font-mono">Filter:</span>
+                <div class="inline-flex rounded-lg p-0.5 bg-slate-900 border border-slate-800" id="filter-buttons">
+                  <button type="button" data-filter="all"
+                    class="filter-btn px-3 py-1 text-xs font-bold rounded-md transition bg-amber-500 text-black shadow">
+                    All
+                  </button>
+                  <button type="button" data-filter="buy"
+                    class="filter-btn px-3 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">
+                    Buy
+                  </button>
+                  <button type="button" data-filter="sell"
+                    class="filter-btn px-3 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">
+                    Sell
+                  </button>
+                  <button type="button" data-filter="consign"
+                    class="filter-btn px-3 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">
+                    Consign
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State (Hidden when items exist) -->
+            <div id="empty-state"
+              class="hidden bg-[#0B1320] border border-slate-800 rounded-xl p-10 text-center text-slate-400 my-2">
+              <div
+                class="w-14 h-14 mx-auto mb-3 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 class="text-base font-bold text-slate-200 mb-1">All Applications Reviewed</h3>
+              <p class="text-xs text-slate-500 max-w-sm mx-auto">There are no pending staff applications at this time.
+                New applicant submissions will appear here automatically.</p>
+            </div>
+
+            <!-- Applications Table (Styled identically to customer.html table) -->
+            <div id="table-wrapper" class="overflow-x-auto rounded-lg border border-slate-800/80">
+              <table class="min-w-full text-left text-sm table-auto">
+                <thead class="bg-slate-900/60">
+                  <tr class="text-slate-400 uppercase text-[11px] border-b border-slate-800">
+                    <th class="px-4 py-3 w-14">ID</th>
+                    <th class="px-4 py-3">Name</th>
+                    <th class="px-4 py-3">Position / Option</th>
+                    <th class="px-4 py-3">Contact Info</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Date</th>
+                    <th class="px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="applications-table-body" class="divide-y divide-slate-800/80">
+
+
+
+
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER (Identical to customer.html) -->
+  <footer class="bg-black text-slate-500 py-12 border-t border-slate-900 mt-auto">
+    <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-8">
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-3 mb-4">
+          <svg class="w-6 h-6 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          </svg>
+          <div class="text-xl font-bold text-white">Kredit<span class="text-amber-500">Cars</span></div>
+        </div>
+
+        <p class="max-w-xs mb-4 text-sm text-slate-400">KreditCars — quality pre-owned vehicles in Olongapo City. Honest
+          service and tailored financing to help you drive away happy.</p>
+
+        <div class="flex gap-3">
+          <a href="#"
+            class="w-10 h-10 border border-slate-800 flex items-center justify-center hover:text-white hover:border-slate-600 transition text-sm font-semibold">F</a>
+          <a href="#"
+            class="w-10 h-10 border border-slate-800 flex items-center justify-center hover:text-white hover:border-slate-600 transition text-sm font-semibold">I</a>
+          <a href="#"
+            class="w-10 h-10 border border-slate-800 flex items-center justify-center hover:text-white hover:border-slate-600 transition text-sm font-semibold">M</a>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold uppercase mb-3 text-sm tracking-wider">Office</h4>
+        <p class="text-sm">Olongapo City, Philippines</p>
+        <p class="mt-3 text-amber-500 text-sm font-medium">Mon - Fri: 9:00 AM - 6:00 PM</p>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold uppercase mb-3 text-sm tracking-wider">Quick Links</h4>
+        <div class="flex flex-col space-y-2 text-sm">
+          <a href="index.html" class="hover:text-amber-400 transition">Inventory</a>
+          <a href="customer.html" class="hover:text-amber-400 transition">Customers</a>
+          <a href="notify.html" class="hover:text-amber-400 transition">Notifications</a>
+          <a href="dashboard.html" class="hover:text-amber-400 transition">Dashboard</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm pt-4 border-t border-slate-900/60">
+      <p>© 2026 KreditCars. All rights reserved.</p>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span class="text-green-500 font-bold uppercase text-xs">System Online</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- CONFIRMATION POP-OUT MODAL -->
+  <div id="confirm-modal"
+    class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      class="bg-[#0B1320] border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative transform transition-all animate-in fade-in zoom-in-95 duration-200">
+
+      <!-- Close 'X' button -->
+      <button id="modal-close-x"
+        class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
+
+      <div class="flex items-start gap-4">
+        <!-- Icon container -->
+        <div id="modal-icon-container"
+          class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-500/10 border border-red-500/30 text-red-500">
+          <svg id="modal-icon-danger" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <svg id="modal-icon-success" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        <div class="flex-1 pr-2">
+          <h3 id="modal-title" class="text-lg font-bold text-white italic">Reject Application?</h3>
+          <p id="modal-message" class="text-sm text-slate-300 mt-2 leading-relaxed">
+            Reject and delete application for Cruz, Eduardo?
+          </p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
+        <button id="modal-cancel-btn" type="button"
+          class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold uppercase tracking-wider transition border border-slate-700">
+          Cancel
+        </button>
+        <button id="modal-confirm-btn" type="button"
+          class="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider transition shadow-lg">
+          Yes, Reject
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script type="module">
+    import {
+      db,
+      collection,
+      query,
+      orderBy,
+      onSnapshot,
+      getDocs,
+      doc,
+      updateDoc,
+      deleteDoc
+    } from './firebase.js';
+
+    // Mobile menu toggle
+    const mobileBtn = document.getElementById('mobile-btn');
+    if (mobileBtn) {
+      mobileBtn.addEventListener('click', function () {
+        const menu = document.getElementById('mobile-menu');
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', (!expanded).toString());
+        if (menu) menu.classList.toggle('hidden');
+      });
+    }
+
+    // Helper: HTML escape for safe strings in modals/flash
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Flash message helper
+    function showFlash(type, message) {
+      const flash = document.getElementById('flash-container');
+      if (!flash) return;
+
+      const isSuccess = type === 'success';
+      flash.className = `rounded-xl border px-5 py-3 font-medium transition duration-300 flex items-center justify-between shadow-lg ${isSuccess
+        ? 'bg-emerald-950/60 border-emerald-600/70 text-emerald-300'
+        : 'bg-red-950/60 border-red-600/70 text-red-300'
+        }`;
+      flash.innerHTML = `
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            ${isSuccess
+          ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
+          : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'}
+          </svg>
+          <span class="text-sm">${escapeHtml(message)}</span>
+        </div>
+        <button type="button" class="flash-close-btn text-slate-400 hover:text-white p-1" title="Close">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      `;
+      flash.querySelector('.flash-close-btn')?.addEventListener('click', () => {
+        flash.classList.add('hidden');
+      });
+      flash.classList.remove('hidden');
+      flash.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Custom Pop-Out Confirmation Modal Logic
+    let pendingConfirmAction = null;
+
+    function showConfirmModal(opts) {
+      const modal = document.getElementById('confirm-modal');
+      const title = document.getElementById('modal-title');
+      const msg = document.getElementById('modal-message');
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      const iconDanger = document.getElementById('modal-icon-danger');
+      const iconSuccess = document.getElementById('modal-icon-success');
+      const iconBox = document.getElementById('modal-icon-container');
+
+      if (!modal) return;
+
+      title.textContent = opts.title || 'Confirmation';
+      msg.innerHTML = opts.message || 'Are you sure you want to proceed?';
+      confirmBtn.textContent = opts.confirmText || 'Confirm';
+
+      if (opts.isDanger) {
+        confirmBtn.className = "px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider transition shadow-lg";
+        iconBox.className = "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-500/10 border border-red-500/30 text-red-500";
+        iconDanger.classList.remove('hidden');
+        iconSuccess.classList.add('hidden');
+      } else {
+        confirmBtn.className = "px-6 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold uppercase tracking-wider transition shadow-lg";
+        iconBox.className = "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-500/10 border border-amber-500/30 text-amber-400";
+        iconDanger.classList.add('hidden');
+        iconSuccess.classList.remove('hidden');
+      }
+
+      pendingConfirmAction = opts.onConfirm;
+      modal.classList.remove('hidden');
+    }
+
+    function hideConfirmModal() {
+      const modal = document.getElementById('confirm-modal');
+      if (modal) modal.classList.add('hidden');
+      pendingConfirmAction = null;
+    }
+
+    const modalCancelBtn = document.getElementById('modal-cancel-btn');
+    const modalCloseX = document.getElementById('modal-close-x');
+    const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+    const confirmModal = document.getElementById('confirm-modal');
+
+    if (modalCancelBtn) modalCancelBtn.addEventListener('click', hideConfirmModal);
+    if (modalCloseX) modalCloseX.addEventListener('click', hideConfirmModal);
+    if (confirmModal) {
+      confirmModal.addEventListener('click', function (e) {
+        if (e.target === confirmModal) hideConfirmModal();
+      });
+    }
+    if (modalConfirmBtn) {
+      modalConfirmBtn.addEventListener('click', function () {
+        if (typeof pendingConfirmAction === 'function') {
+          pendingConfirmAction();
+        }
+        hideConfirmModal();
+      });
+    }
+
+    // Storage keys for staff applications actions
+    const STORAGE_KEY_PROCESSED_APPS = 'kreditcars_processed_applications';
+
+    function getProcessedAppIds() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY_PROCESSED_APPS);
+        return data ? JSON.parse(data) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveProcessedAppId(id) {
+      try {
+        const processed = getProcessedAppIds().map(String);
+        const strId = String(id);
+        if (!processed.includes(strId)) {
+          processed.push(strId);
+          localStorage.setItem(STORAGE_KEY_PROCESSED_APPS, JSON.stringify(processed));
+        }
+      } catch (e) {
+        console.error('Error saving processed application id:', e);
+      }
+    }
+
+    // Applicant data for staff addition upon approval
+    const APPLICANTS_INFO = {
+      "1": { fullname: "Eduardo Cruz", username: "eduardo.cruz", position: "Sales Consultant", email: "eduardo.cruz@example.com", contact: "+63 918 555 0192" },
+      "2": { fullname: "Angela Reyes", username: "angela.reyes", position: "Loan & Finance Officer", email: "angela.reyes@example.com", contact: "+63 927 444 8810" },
+      "3": { fullname: "Mark Bautista", username: "mark.bautista", position: "Lead Vehicle Inspector", email: "mark.bautista@example.com", contact: "+63 939 123 7741" }
+    };
+
+    function addApplicantToStaff(appId) {
+      try {
+        const info = APPLICANTS_INFO[String(appId)];
+        if (!info) return;
+
+        const STORAGE_KEY_USERS = 'kreditcars_users_list';
+        const raw = localStorage.getItem(STORAGE_KEY_USERS);
+        let users = raw ? JSON.parse(raw) : [];
+
+        // Avoid adding duplicate by email
+        const exists = users.some(u => (u.email || '').toLowerCase() === info.email.toLowerCase());
+        if (!exists) {
+          const nextId = 'staff_' + Date.now();
+          users.push({
+            id: nextId,
+            fullname: info.fullname,
+            username: info.username,
+            email: info.email,
+            password: 'password123',
+            role: 'staff',
+            created: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            contact: info.contact,
+            canDelete: true
+          });
+          localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+        }
+      } catch (e) {
+        console.error('Error adding applicant to staff roster:', e);
+      }
+    }
+
+    // Staff applications: Accept / Reject actions (Must keep working exactly as they do now)
+    function handleAction(appId, action) {
+      const row = document.querySelector(`.app-row[data-id="${appId}"]`);
+      const name = row ? row.getAttribute('data-name') : 'Applicant';
+
+      if (action === 'reject') {
+        showConfirmModal({
+          title: 'Reject Application',
+          message: `Reject and delete application for <span class="font-bold text-white">${escapeHtml(name)}</span>? This action cannot be undone.`,
+          confirmText: 'Yes, Reject',
+          isDanger: true,
+          onConfirm: function () {
+            saveProcessedAppId(appId);
+            if (row) {
+              row.style.transition = 'all 0.3s ease';
+              row.style.opacity = '0';
+              setTimeout(() => {
+                row.remove();
+                updateMainViewState();
+              }, 300);
+            } else {
+              updateMainViewState();
+            }
+            showFlash('success', `Application for ${name} rejected and permanently removed.`);
+          }
+        });
+      } else if (action === 'accept') {
+        showConfirmModal({
+          title: 'Accept Applicant',
+          message: `Accept <span class="font-bold text-white">${escapeHtml(name)}</span> and add to the active staff roster?`,
+          confirmText: 'Yes, Accept',
+          isDanger: false,
+          onConfirm: function () {
+            saveProcessedAppId(appId);
+            addApplicantToStaff(appId);
+
+            if (row) {
+              row.style.transition = 'all 0.3s ease';
+              row.style.opacity = '0';
+              setTimeout(() => {
+                row.remove();
+                updateMainViewState();
+              }, 300);
+            } else {
+              updateMainViewState();
+            }
+            showFlash('success', `Application for ${name} accepted and added to staff roster.`);
+          }
+        });
+      }
+    }
+    window.handleAction = handleAction;
+
+    // ── Helper functions for quickInquiries data formatting ──
+    function getCustomerName(data) {
+      const first = (data.firstName || '').trim();
+      const last = (data.lastName || '').trim();
+      if (first && last) return `${first} ${last}`;
+      if (first) return first;
+      if (last) return last;
+      if (data.name) return String(data.name).trim();
+      if (data.fullName) return String(data.fullName).trim();
+      if (data.customerName) return String(data.customerName).trim();
+      return 'Customer';
+    }
+
+    function getCustomerPhone(data) {
+      return data.phone || data.contact || 'No phone provided';
+    }
+
+    function getCustomerOption(data) {
+      return data.option || data.type || data.inquiryType || 'Buy';
+    }
+
+    function getCustomerStatus(data) {
+      return (data.status || 'pending').toLowerCase();
+    }
+
+    function getOptionCategory(optionStr) {
+      if (!optionStr) return 'other';
+      const str = String(optionStr).toLowerCase();
+      if (str.includes('buy')) return 'buy';
+      if (str.includes('sell') || str.includes('trade')) return 'sell';
+      if (str.includes('consign')) return 'consign';
+      return 'other';
+    }
+
+    function formatTimeReceived(val) {
+      if (!val) return 'Just now';
+      let date = null;
+      if (val && typeof val.toDate === 'function') {
+        date = val.toDate();
+      } else if (val instanceof Date) {
+        date = val;
+      } else if (typeof val === 'number') {
+        date = new Date(val);
+      } else if (typeof val === 'string') {
+        date = new Date(val);
+      }
+      if (!date || isNaN(date.getTime())) {
+        return String(val);
+      }
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      return `${y}-${m}-${d} ${h}:${min}`;
+    }
+
+    // ── Customer Request Actions (updateDoc / deleteDoc) ──
+    async function handleCustomerAction(docId, name, action) {
+      if (action === 'accept') {
+        showConfirmModal({
+          title: 'Accept Request',
+          message: `Accept inquiry request from <span class="font-bold text-white">${escapeHtml(name)}</span> and move to Customer Requests?`,
+          confirmText: 'Yes, Accept',
+          isDanger: false,
+          onConfirm: async function () {
+            try {
+              await updateDoc(doc(db, 'quickInquiries', docId), { status: 'accepted' });
+              showFlash('success', `Request from ${name} accepted and moved to Customer Requests & Applications.`);
+            } catch (err) {
+              console.error('Error accepting inquiry:', err);
+              showFlash('danger', 'Failed to accept request: ' + (err.message || err));
+            }
+          }
+        });
+      } else if (action === 'reject') {
+        showConfirmModal({
+          title: 'Reject Request',
+          message: `Reject inquiry request from <span class="font-bold text-white">${escapeHtml(name)}</span>?`,
+          confirmText: 'Yes, Reject',
+          isDanger: true,
+          onConfirm: async function () {
+            try {
+              await updateDoc(doc(db, 'quickInquiries', docId), { status: 'rejected' });
+              showFlash('success', `Request from ${name} rejected.`);
+            } catch (err) {
+              console.error('Error rejecting inquiry:', err);
+              showFlash('danger', 'Failed to reject request: ' + (err.message || err));
+            }
+          }
+        });
+      } else if (action === 'delete') {
+        showConfirmModal({
+          title: 'Delete Request',
+          message: `Permanently delete request from <span class="font-bold text-white">${escapeHtml(name)}</span>? This action cannot be undone.`,
+          confirmText: 'Yes, Delete',
+          isDanger: true,
+          onConfirm: async function () {
+            try {
+              await deleteDoc(doc(db, 'quickInquiries', docId));
+              showFlash('success', `Request from ${name} permanently deleted.`);
+            } catch (err) {
+              console.error('Error deleting inquiry:', err);
+              showFlash('danger', 'Failed to delete request: ' + (err.message || err));
+            }
+          }
+        });
+      }
+    }
+
+    // Create a compact card for Recent Requests panel (Accept and Reject buttons)
+    function createSidebarItem(req) {
+      const name = getCustomerName(req);
+      const phone = getCustomerPhone(req);
+      const option = getCustomerOption(req);
+      const status = getCustomerStatus(req);
+      const time = formatTimeReceived(req.createdAt);
+
+      const container = document.createElement('div');
+      container.className = 'bg-[#0B1320] border border-slate-800 rounded-lg p-3 text-xs shadow hover:border-slate-700 transition customer-sidebar-item';
+      container.id = 'req-' + req.id;
+      container.setAttribute('data-id', req.id);
+
+      const flexRow = document.createElement('div');
+      flexRow.className = 'flex items-start justify-between gap-2';
+
+      const leftCol = document.createElement('div');
+      leftCol.className = 'flex-1 min-w-0';
+
+      // Badges container
+      const badgesDiv = document.createElement('div');
+      badgesDiv.className = 'flex items-center gap-1.5 mb-1 flex-wrap';
+
+      // Option colored label (Buy, Sell or Consign)
+      const optBadge = document.createElement('span');
+      const optCat = getOptionCategory(option);
+      if (optCat === 'buy') {
+        optBadge.className = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold';
+      } else if (optCat === 'sell') {
+        optBadge.className = 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded text-[10px] font-semibold';
+      } else if (optCat === 'consign') {
+        optBadge.className = 'bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-semibold';
+      } else {
+        optBadge.className = 'bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-semibold';
+      }
+      optBadge.textContent = option;
+      badgesDiv.appendChild(optBadge);
+
+      // Status badge
+      const statusBadge = document.createElement('span');
+      if (status === 'accepted') {
+        statusBadge.className = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider';
+        statusBadge.textContent = 'Accepted';
+      } else if (status === 'rejected') {
+        statusBadge.className = 'bg-red-500/10 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider';
+        statusBadge.textContent = 'Rejected';
+      } else {
+        statusBadge.className = 'bg-amber-500/10 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider';
+        statusBadge.textContent = 'Pending';
+      }
+      badgesDiv.appendChild(statusBadge);
+
+      leftCol.appendChild(badgesDiv);
+
+      // Customer Name
+      const nameEl = document.createElement('div');
+      nameEl.className = 'font-medium text-sm text-white mt-0.5 truncate';
+      nameEl.textContent = name;
+      leftCol.appendChild(nameEl);
+
+      // Phone
+      const phoneEl = document.createElement('div');
+      phoneEl.className = 'text-[11px] text-slate-400 mt-0.5 truncate';
+      phoneEl.textContent = phone;
+      leftCol.appendChild(phoneEl);
+
+      // Time received
+      const timeEl = document.createElement('div');
+      timeEl.className = 'text-[11px] text-slate-500 mt-1 font-mono';
+      timeEl.textContent = time;
+      leftCol.appendChild(timeEl);
+
+      flexRow.appendChild(leftCol);
+
+      // Buttons column: Accept and Reject buttons
+      const btnCol = document.createElement('div');
+      btnCol.className = 'flex flex-col gap-1.5 flex-shrink-0';
+
+      // Accept button
+      const acceptBtn = document.createElement('button');
+      acceptBtn.type = 'button';
+      acceptBtn.className = 'bg-amber-500 px-2.5 py-1 text-black font-bold uppercase transform -skew-x-6 hover:bg-amber-400 text-[11px] rounded transition shadow';
+      const acceptSpan = document.createElement('span');
+      acceptSpan.className = 'inline-block skew-x-6';
+      acceptSpan.textContent = 'Accept';
+      acceptBtn.appendChild(acceptSpan);
+      acceptBtn.addEventListener('click', () => handleCustomerAction(req.id, name, 'accept'));
+      btnCol.appendChild(acceptBtn);
+
+      // Reject button
+      const rejectBtn = document.createElement('button');
+      rejectBtn.type = 'button';
+      rejectBtn.className = 'bg-red-600/80 hover:bg-red-600 text-white font-semibold uppercase text-[10px] px-2 py-0.5 rounded transition';
+      rejectBtn.textContent = 'Reject';
+      rejectBtn.addEventListener('click', () => handleCustomerAction(req.id, name, 'reject'));
+      btnCol.appendChild(rejectBtn);
+
+      flexRow.appendChild(btnCol);
+      container.appendChild(flexRow);
+
+      return container;
+    }
+
+    // Create table row for Customer Requests & Applications (ONLY Delete button)
+    function createTableRow(req) {
+      const name = getCustomerName(req);
+      const phone = getCustomerPhone(req);
+      const option = getCustomerOption(req);
+      const status = getCustomerStatus(req);
+      const time = formatTimeReceived(req.createdAt);
+
+      const tr = document.createElement('tr');
+      tr.className = 'customer-req-row hover:bg-slate-800/30 transition';
+      tr.setAttribute('data-id', req.id);
+      tr.setAttribute('data-name', name);
+      tr.setAttribute('data-option', option);
+
+      // ID column
+      const tdId = document.createElement('td');
+      tdId.className = 'px-4 py-3 align-middle text-slate-400 font-mono text-xs';
+      tdId.textContent = `#${String(req.id).slice(0, 6)}`;
+      tr.appendChild(tdId);
+
+      // Name column
+      const tdName = document.createElement('td');
+      tdName.className = 'px-4 py-3 align-middle font-medium text-white';
+      const nameWrap = document.createElement('div');
+      nameWrap.className = 'flex items-center gap-2.5';
+      const iconWrap = document.createElement('div');
+      iconWrap.className = 'w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0';
+      iconWrap.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>';
+      nameWrap.appendChild(iconWrap);
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = name;
+      nameWrap.appendChild(nameSpan);
+      tdName.appendChild(nameWrap);
+      tr.appendChild(tdName);
+
+      // Option column (colored label for Buy, Sell or Consign)
+      const tdOption = document.createElement('td');
+      tdOption.className = 'px-4 py-3 align-middle';
+      const optBadge = document.createElement('span');
+      const optCat = getOptionCategory(option);
+      if (optCat === 'buy') {
+        optBadge.className = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[11px] font-semibold';
+      } else if (optCat === 'sell') {
+        optBadge.className = 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded text-[11px] font-semibold';
+      } else if (optCat === 'consign') {
+        optBadge.className = 'bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[11px] font-semibold';
+      } else {
+        optBadge.className = 'bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold';
+      }
+      optBadge.textContent = option;
+      tdOption.appendChild(optBadge);
+      tr.appendChild(tdOption);
+
+      // Contact column (phone)
+      const tdContact = document.createElement('td');
+      tdContact.className = 'px-4 py-3 align-middle text-xs text-slate-300';
+      const phoneDiv = document.createElement('div');
+      phoneDiv.className = 'font-mono text-slate-300';
+      phoneDiv.textContent = phone;
+      tdContact.appendChild(phoneDiv);
+      if (req.email) {
+        const emailDiv = document.createElement('div');
+        emailDiv.className = 'text-slate-500 text-[11px] mt-0.5';
+        emailDiv.textContent = req.email;
+        tdContact.appendChild(emailDiv);
+      }
+      tr.appendChild(tdContact);
+
+      // Status column
+      const tdStatus = document.createElement('td');
+      tdStatus.className = 'px-4 py-3 align-middle';
+      const statusBadge = document.createElement('span');
+      if (status === 'accepted') {
+        statusBadge.className = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider';
+        statusBadge.textContent = 'Accepted';
+      } else if (status === 'rejected') {
+        statusBadge.className = 'bg-red-500/10 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider';
+        statusBadge.textContent = 'Rejected';
+      } else {
+        statusBadge.className = 'bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider';
+        statusBadge.textContent = 'Pending';
+      }
+      tdStatus.appendChild(statusBadge);
+      tr.appendChild(tdStatus);
+
+      // Date received column
+      const tdDate = document.createElement('td');
+      tdDate.className = 'px-4 py-3 align-middle text-xs text-slate-400 font-mono';
+      tdDate.textContent = time;
+      tr.appendChild(tdDate);
+
+      // Actions column (ONLY Delete button for Customer Requests)
+      const tdActions = document.createElement('td');
+      tdActions.className = 'px-4 py-3 align-middle text-center';
+      const actionWrap = document.createElement('div');
+      actionWrap.className = 'flex items-center justify-center gap-1.5';
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white px-2.5 py-1 rounded text-xs font-semibold transition border border-slate-700';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', () => handleCustomerAction(req.id, name, 'delete'));
+      actionWrap.appendChild(delBtn);
+
+      tdActions.appendChild(actionWrap);
+      tr.appendChild(tdActions);
+
+      return tr;
+    }
+
+    let allInquiries = [];
+    let currentFilter = 'all';
+
+    function updateMainViewState() {
+      const tbody = document.getElementById('applications-table-body');
+      const emptyState = document.getElementById('empty-state');
+      const tableWrapper = document.getElementById('table-wrapper');
+      if (!tbody) return;
+
+      const visibleRows = Array.from(tbody.querySelectorAll('tr')).filter(r => {
+        return r.style.display !== 'none' && !r.classList.contains('hidden');
+      });
+
+      if (visibleRows.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (tableWrapper) tableWrapper.classList.add('hidden');
+      } else {
+        if (emptyState) emptyState.classList.add('hidden');
+        if (tableWrapper) tableWrapper.classList.remove('hidden');
+      }
+    }
+
+    function renderAll() {
+      // 1. Pending requests: status is pending (goes to Recent Requests first)
+      const pendingInquiries = allInquiries.filter(r => (r.status || 'pending').toLowerCase() === 'pending');
+      const pendingCount = pendingInquiries.length;
+      const pendingBadgeText = document.getElementById('pending-badge-text');
+      if (pendingBadgeText) {
+        pendingBadgeText.textContent = `${pendingCount} Pending Request${pendingCount === 1 ? '' : 's'}`;
+      }
+
+      // 2. Accepted requests: status is accepted (goes to Customer Requests & Applications)
+      const acceptedInquiries = allInquiries.filter(r => (r.status || '').toLowerCase() === 'accepted');
+
+      // 3. Filter pending inquiries for Recent Requests
+      const filteredPending = pendingInquiries.filter(r => {
+        if (currentFilter === 'all') return true;
+        return getOptionCategory(r.option) === currentFilter;
+      });
+
+      // 4. Render sidebar ("Recent Requests" panel: incoming pending inquiries)
+      const listContainer = document.getElementById('requests-list');
+      const requestsEmpty = document.getElementById('requests-empty');
+      if (listContainer) {
+        listContainer.querySelectorAll('.customer-sidebar-item').forEach(el => el.remove());
+        filteredPending.forEach(req => {
+          listContainer.appendChild(createSidebarItem(req));
+        });
+        if (requestsEmpty) {
+          if (filteredPending.length === 0) {
+            requestsEmpty.classList.remove('hidden');
+          } else {
+            requestsEmpty.classList.add('hidden');
+          }
+        }
+      }
+
+      // 5. Filter accepted inquiries for main table
+      const filteredAccepted = acceptedInquiries.filter(r => {
+        if (currentFilter === 'all') return true;
+        return getOptionCategory(r.option) === currentFilter;
+      });
+
+      // 6. Render main table ("Customer Requests & Applications" area: accepted inquiries + staff applications)
+      const tbody = document.getElementById('applications-table-body');
+      if (tbody) {
+        // Clear previous customer request rows
+        tbody.querySelectorAll('.customer-req-row').forEach(r => r.remove());
+
+        // Handle staff rows (.app-row) visibility based on filter and processed state
+        const processedApps = getProcessedAppIds().map(String);
+        tbody.querySelectorAll('.app-row').forEach(row => {
+          const id = String(row.getAttribute('data-id'));
+          if (processedApps.includes(id)) {
+            row.style.display = 'none';
+          } else if (currentFilter === 'all') {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        // Add accepted customer request rows (with Delete button only)
+        filteredAccepted.forEach(req => {
+          tbody.appendChild(createTableRow(req));
+        });
+
+        updateMainViewState();
+      }
+    }
+
+    // Set filter handler
+    function setupFilterButtons() {
+      const container = document.getElementById('filter-buttons');
+      if (!container) return;
+      const buttons = container.querySelectorAll('.filter-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', function () {
+          const selected = (this.getAttribute('data-filter') || 'all').toLowerCase();
+          currentFilter = selected;
+          buttons.forEach(b => {
+            const f = (b.getAttribute('data-filter') || 'all').toLowerCase();
+            if (f === currentFilter) {
+              b.className = 'filter-btn px-3 py-1 text-xs font-bold rounded-md transition bg-amber-500 text-black shadow';
+            } else {
+              b.className = 'filter-btn px-3 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-white';
+            }
+          });
+          renderAll();
+        });
+      });
+    }
+
+    // Firestore real-time listener for "quickInquiries" collection
+    function initFirestoreListener() {
+      try {
+        const inqQuery = query(collection(db, 'quickInquiries'), orderBy('createdAt', 'desc'));
+        onSnapshot(inqQuery, (snapshot) => {
+          const inquiries = [];
+          snapshot.forEach(docSnap => {
+            inquiries.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          allInquiries = inquiries;
+          renderAll();
+        }, (err) => {
+          console.warn('Firestore quickInquiries listener error:', err);
+          // Fallback: one-time fetch and sort in memory
+          getDocs(collection(db, 'quickInquiries')).then(snap => {
+            const inquiries = [];
+            snap.forEach(d => inquiries.push({ id: d.id, ...d.data() }));
+            inquiries.sort((a, b) => {
+              const ta = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0)).getTime();
+              const tb = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0)).getTime();
+              return tb - ta;
+            });
+            allInquiries = inquiries;
+            renderAll();
+          }).catch(e => {
+            console.error('Fallback fetch for quickInquiries failed:', e);
+            allInquiries = [];
+            renderAll();
+          });
+        });
+      } catch (e) {
+        console.error('Failed to initialize quickInquiries listener:', e);
+      }
+    }
+
+    // Initialize notify page
+    function initNotify() {
+      // Remove permanently processed staff applications
+      const processedApps = getProcessedAppIds().map(String);
+      if (processedApps.length > 0) {
+        document.querySelectorAll('.app-row').forEach(row => {
+          const id = String(row.getAttribute('data-id'));
+          if (processedApps.includes(id)) {
+            row.remove();
+          }
+        });
+      }
+
+      setupFilterButtons();
+      renderAll();
+      initFirestoreListener();
+    }
+
+    initNotify();
+  </script>
+
+  <!-- STAFF SITE: Firebase sign-in check + logout -->
+  <script type="module">
+    import { auth, onAuthStateChanged, signOut } from './firebase.js';
+
+    const SESSION_KEY = 'kreditcars_logged_in_user';
+    function clearSession() {
+      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+
+    window.logout = async function () {
+      try { await signOut(auth); } catch (err) { console.warn('Sign out issue:', err); }
+      clearSession();
+      window.location.href = 'login.html';
+    };
+
+    // If Firebase says nobody is signed in, send them back to login
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        clearSession();
+        window.location.replace('login.html');
+      }
+    });
+  </script>
+</body>
+
+</html>

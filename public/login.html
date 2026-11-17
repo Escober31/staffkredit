@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Staff Login — KreditCars</title>
+  <meta name="description" content="KreditCars staff login" />
+  <link rel="icon" href="images/KREDITCARS.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* small local tweaks */
+    .glass { background: rgba(14,22,33,0.65); backdrop-filter: blur(6px); }
+
+    /* keep nav height consistent and let main use it to avoid overlap */
+    :root {
+      --nav-h-mobile: 4rem; /* 64px (h-16) */
+      --nav-h-md: 5rem;     /* 80px (h-20) */
+    }
+    @media (min-width: 768px) {
+      :root { --nav-h: var(--nav-h-md); }
+    }
+    @media (max-width: 767px) {
+      :root { --nav-h: var(--nav-h-mobile); }
+    }
+
+    /* push page content below the fixed nav */
+    main { padding-top: calc(var(--nav-h) + 1rem); } /* +1rem breathing room */
+
+    /* logo hover effect */
+    .logo-hover:hover svg {
+      transform: rotate(5deg) scale(1.05);
+      transition: transform 0.3s ease;
+    }
+
+    /* mobile menu slide */
+    #mobile-menu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    #mobile-menu.show {
+      max-height: 500px;
+    }
+  </style>
+</head>
+<body class="bg-[#0E1621] text-slate-200 antialiased font-sans">
+
+  <!-- NAV -->
+  <nav class="fixed top-0 left-0 right-0 z-50 h-16 md:h-14 bg-[#07101a]/60 backdrop-blur-lg border-b border-slate-800 shadow-sm">
+    <div class="max-w-6xl mx-auto px-6 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3 logo-hover">
+        <!-- SVG hexagon that clips the image inside and draws the orange border -->
+        <svg viewBox="0 0 100 100" class="w-10 h-10" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="KreditCars logo">
+          <defs>
+            <clipPath id="hexClipLogoLogin">
+              <polygon points="25,6.7 75,6.7 100,50 75,93.3 25,93.3 0,50" />
+            </clipPath>
+          </defs>
+
+          <!-- logo image -->
+          <image href="images/KREDITCARS.png"
+                 x="5" y="10" width="100" height="100"
+                 preserveAspectRatio="xMidYMid slice"
+                 clip-path="url(#hexClipLogoLogin)" />
+        </svg>
+
+        <div class="leading-tight">
+          <div class="text-xl font-black tracking-wider italic">Kredit<span class="text-amber-500">Cars</span></div>
+          <div class="text-xs text-cyan-400 uppercase tracking-widest">Trusted Pre-Owned Vehicles</div>
+        </div>
+      </a>
+
+      <div class="hidden md:flex items-center gap-4">
+      </div>
+    </div>
+  </nav>
+
+  <!-- LOGIN CARD -->
+  <main class="min-h-screen flex items-center justify-center pt-24 pb-10">
+    <div class="max-w-md w-full mx-6">
+      <div class="bg-[#081017] border border-slate-800 p-8 rounded-lg shadow-lg glass">
+        <h2 class="text-2xl font-bold text-white mb-2">Staff Login</h2>
+        <p class="text-slate-400 mb-6">Sign in with your staff account to access the dashboard.</p>
+
+        <!-- ERROR BANNER -->
+        <div id="login-error" class="hidden mb-5 p-3.5 rounded-lg bg-red-950/80 border border-red-600/70 text-red-300 text-sm flex items-start gap-3 shadow-lg">
+          <svg class="w-5 h-5 flex-shrink-0 text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div id="login-error-text" class="flex-1 font-medium leading-relaxed"></div>
+        </div>
+
+        <form id="login-form" class="space-y-4" autocomplete="off">
+          <label class="block">
+            <span class="text-slate-300 text-sm font-semibold">Email Address</span>
+            <input id="login-email" type="email" name="email" required placeholder="e.g. juan@kreditcars.com" class="mt-1 block w-full bg-[#0E1621] border border-slate-700 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition text-sm"/>
+          </label>
+
+          <label class="block">
+            <span class="text-slate-300 text-sm font-semibold">Password</span>
+            <input id="login-password" type="password" name="password" required placeholder="••••••••••••" class="mt-1 block w-full bg-[#0E1621] border border-slate-700 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition text-sm"/>
+          </label>
+
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 text-slate-400 text-sm cursor-pointer select-none">
+              <input type="checkbox" id="login-remember" name="remember" class="accent-amber-500 rounded"/>
+              Remember me
+            </label>
+          </div>
+
+          <button id="login-submit-btn" type="submit" class="w-full mt-2 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-black font-bold py-3 uppercase tracking-wider text-sm rounded-lg transition shadow-md disabled:opacity-60">
+            Login
+          </button>
+        </form>
+
+        <p class="text-slate-500 text-sm mt-5 text-center">Want to join the team? <a href="signin.html" class="text-amber-500 hover:text-amber-400 font-semibold underline underline-offset-2">Apply here</a>.</p>
+      </div>
+    </div>
+  </main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut,
+    setPersistence, browserLocalPersistence, browserSessionPersistence
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA8IIXHHYZemvQC9SxxRJQKc2u03Z6o3Vs",
+    authDomain: "kredit-dbb5b.firebaseapp.com",
+    projectId: "kredit-dbb5b",
+    storageBucket: "kredit-dbb5b.firebasestorage.app",
+    messagingSenderId: "857700287694",
+    appId: "1:857700287694:web:e9c3c1ad0364d67f6b7c9f",
+    measurementId: "G-V9T449WRTG"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const STORAGE_KEY_SESSION = 'kreditcars_logged_in_user';
+
+  // UI elements
+  const loginForm = document.getElementById('login-form');
+  const emailInput = document.getElementById('login-email');
+  const passwordInput = document.getElementById('login-password');
+  const rememberInput = document.getElementById('login-remember');
+  const submitBtn = document.getElementById('login-submit-btn');
+  const errorBox = document.getElementById('login-error');
+  const errorText = document.getElementById('login-error-text');
+
+  function showError(msg) {
+    if (errorText) errorText.textContent = msg;
+    if (errorBox) {
+      errorBox.classList.remove('hidden');
+      errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  function hideError() {
+    if (errorBox) errorBox.classList.add('hidden');
+  }
+
+  emailInput?.addEventListener('input', hideError);
+  passwordInput?.addEventListener('input', hideError);
+
+  // Staff site: only accounts in staff_account may sign in
+  async function findStaffAccount(uid) {
+    const staffSnap = await getDoc(doc(db, 'staff_account', uid));
+    if (staffSnap.exists()) return { ...staffSnap.data(), role: 'staff' };
+    return null;
+  }
+
+  // Used only to show a clearer message when an admin tries the staff site
+  async function isAdminAccount(uid) {
+    try {
+      const adminSnap = await getDoc(doc(db, 'admin_account', uid));
+      return adminSnap.exists();
+    } catch (err) {
+      return false;
+    }
+  }
+
+  loginForm?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    hideError();
+
+    const email = (emailInput.value || '').trim();
+    const password = passwordInput.value || '';
+
+    if (!email || !password) {
+      showError('Please enter both your email address and password.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in...';
+
+    try {
+      // "Remember me" = stay logged in after closing the browser
+      await setPersistence(auth, rememberInput.checked ? browserLocalPersistence : browserSessionPersistence);
+
+      // 1. Check email + password with Firebase Auth
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+
+      // 2. Check the account is a staff member
+      const account = await findStaffAccount(cred.user.uid);
+      if (!account) {
+        const admin = await isAdminAccount(cred.user.uid);
+        await signOut(auth);
+        showError(admin
+          ? 'This is the staff login. Please use the admin website.'
+          : 'This account is not registered as staff.');
+        return;
+      }
+
+      // 3. Save the session (same key the other pages already use)
+      const sessionData = {
+        id: cred.user.uid,
+        uid: cred.user.uid,
+        fullname: account.fullname,
+        username: account.username,
+        email: account.email,
+        role: account.role,
+        loggedInAt: new Date().toISOString()
+      };
+      localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(sessionData));
+      sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(sessionData));
+
+      // 4. Go to the dashboard
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      const messages = {
+        'auth/invalid-credential': 'Incorrect email or password. Please try again.',
+        'auth/user-not-found': 'This email is not registered in our system.',
+        'auth/wrong-password': 'Incorrect password. Please try again.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/user-disabled': 'This account has been disabled.',
+        'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+        'auth/network-request-failed': 'Network error. Please check your internet connection.',
+        'permission-denied': 'Permission denied while checking your account. Check your Firestore rules.'
+      };
+      showError(messages[err.code] || err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Login';
+    }
+  });
+</script>
+
+</body>
+</html>
